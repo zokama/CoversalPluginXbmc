@@ -17,10 +17,6 @@ public abstract class JSONRPCClient {
 		return new JSONRPCHttpClient(uri);
 	}*/
 	
-	public JSONRPCClient (String uri) {
-		
-	}
-	
 	protected abstract JSONObject doJSONRequest(JSONObject request) throws JSONRPCException;
 	
 	protected JSONObject doRequest(String method, Object[] params) throws JSONRPCException
@@ -36,11 +32,15 @@ public abstract class JSONRPCClient {
 		JSONObject jsonRequest = new JSONObject();
 		try 
 		{
-			//id hard-coded at 1 for now
+			//id hard-coded to 1 for now
 			jsonRequest.put("jsonrpc", "2.0");
 			jsonRequest.put("id", 1);
 			jsonRequest.put("method", method);
-			jsonRequest.put("params", jsonParams);
+			
+			if (params.length == 1)
+				jsonRequest.put("params", params[0]);
+			else if (params.length > 1)
+				jsonRequest.put("params", jsonParams);
 		}
 		catch (JSONException e1)
 		{

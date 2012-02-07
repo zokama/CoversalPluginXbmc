@@ -3,13 +3,20 @@ package com.coversal.plugin.json;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ProtocolVersion;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -18,22 +25,24 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.util.Log;
+import com.coversal.ucl.plugin.Profile;
+
 
 /**
  * Implementation of JSON-RPC over HTTP/POST
  */
-public class JSONRPCHttpClient extends JSONRPCClient
+public class zJSONRPCHttpClient extends JSONRPCClient
 {
 
 	/*
 	 * HttpClient to issue the HTTP/POST request
 	 */
-	private HttpClient httpClient;
-	/*
-	 * Service URI
-	 */
-	private String serviceUri;
+	private DefaultHttpClient httpClient;
+	private String hostname;
+	private int port;
+	private String user;
+	private String passwd;
+
 
 	// HTTP 1.0
 	private static final ProtocolVersion PROTOCOL_VERSION = new ProtocolVersion("HTTP", 1, 0);
@@ -44,43 +53,68 @@ public class JSONRPCHttpClient extends JSONRPCClient
 	 * @param uri
 	 *            uri of the service
 	 */
-	public JSONRPCHttpClient(String uri)
+	public zJSONRPCHttpClient(String hostname, int port, String username, String password)
 	{
-		super(uri);
-		httpClient = new DefaultHttpClient();
-		serviceUri = uri;
+		this.hostname = hostname;
+		this.port = port;
+		this.user = username;
+		this.passwd = password;
+		
+		// thread safe
+		HttpParams params = new BasicHttpParams();
+		SchemeRegistry registry = new SchemeRegistry();
+		registry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), port));
+		ClientConnectionManager cm = new ThreadSafeClientConnManager(params, registry);
+
+		httpClient = new DefaultHttpClient(cm, params);
+		
+		// authentication
+		if (user != null && passwd != null) {
+			httpClient.getCredentialsProvider().setCredentials(
+	                new AuthScope(hostname, port),
+	                new UsernamePasswordCredentials(user, passwd));
+		}
 	}
 
+	public HttpClient getHttpClient() {
+		return httpClient;
+	}
+	
+	@Override
 	protected JSONObject doJSONRequest(JSONObject jsonRequest) throws JSONRPCException
 	{
 		// Create HTTP/POST request with a JSON entity containing the request
-		HttpPost request = new HttpPost(serviceUri);
+		HttpPost request = new HttpPost("http://"+hostname+":"+port+"/jsonrpc");
 		HttpParams params = new BasicHttpParams();
 		HttpConnectionParams.setConnectionTimeout(params, getConnectionTimeout());
 		HttpConnectionParams.setSoTimeout(params, getSoTimeout());
 		HttpProtocolParams.setVersion(params, PROTOCOL_VERSION);
 		request.setParams(params);
 
-		HttpEntity entity;
+		StringEntity entity;
 		try
 		{
 			entity = new JSONEntity(jsonRequest);
+            
+    		request.setEntity(entity);
+    		Profile.debug(" ---------->"+jsonRequest.toString());
 		}
-		catch (UnsupportedEncodingException e1)
-		{
+		catch (UnsupportedEncodingException e1)	{
 			throw new JSONRPCException("Unsupported encoding", e1);
 		}
-		request.setEntity(entity);
 
+		String responseString = null;
+		
 		try
 		{
 			// Execute the request and try to decode the JSON Response
 			long t = System.currentTimeMillis();
 			HttpResponse response = httpClient.execute(request);
 			t = System.currentTimeMillis() - t;
-			Log.d("json-rpc", "Request time :" + t);
-			String responseString = EntityUtils.toString(response.getEntity());
+			
+			responseString = EntityUtils.toString(response.getEntity());
 			responseString = responseString.trim();
+			
 			JSONObject jsonResponse = new JSONObject(responseString);
 			// Check for remote errors
 			if (jsonResponse.has("error"))
@@ -106,7 +140,7 @@ public class JSONRPCHttpClient extends JSONRPCClient
 		}
 		catch (JSONException e)
 		{
-			throw new JSONRPCException("Invalid JSON response", e);
+			throw new JSONRPCException("Invalid JSON response:\n"+responseString, e);
 		}
 	}
 }

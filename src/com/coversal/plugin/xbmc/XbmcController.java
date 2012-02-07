@@ -1,7 +1,15 @@
 package com.coversal.plugin.xbmc;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
+
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpPost;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.os.RemoteException;
 
@@ -19,6 +27,7 @@ public class XbmcController extends Controller {
 		profile = xbmc;
 		params = new HashMap<String, Object[]>();
 		
+		// common commands to Dharma and Eden
 		defineCommand(START_PLAY, "XBMC.Play", false);
 		defineCommand(PLAY_PAUSE, "VideoPlayer.PlayPause", false);
 		defineCommand(STOP, "VideoPlayer.Stop", false);
@@ -30,6 +39,36 @@ public class XbmcController extends Controller {
 		defineParam(VOL_DOWN, -10);
 		defineCommand(NEXT, "VideoPlayer.SkipNext", false);
 		defineCommand(PREVIOUS, "VideoPlayer.SkipPrevious", false);
+		
+		defineCommand("Shutdown menu", "[http]0xF053)", false);
+		defineCommand("Context menu", "[http]0xF043)", false);
+		defineCommand("Media info", "[http]0xF049)", false);
+		defineCommand(FULLSCREEN, "[http]0xF009", false);
+		defineCommand("OSD", "[http]274", false);
+		
+		defineKey(CUSTOM1, BACK, false, "Back");
+		defineKey(CUSTOM2, HOME, false, "Home");
+		defineKey(CUSTOM3, "Mute", false, "Mute");
+		defineKey(CUSTOM4, "Media info", false, "Info");
+
+	}
+	
+	void defineDharmaCommands() {
+		
+		defineCommand(BACK, "[http]0xF008", false);
+		defineCommand(OK, "[http]0xF00d)", false);
+		defineCommand(HOME, "[http]0xF01B", false);
+		defineCommand(UP, "[http]270", false);
+		defineCommand(DOWN, "[http]271", false);
+		defineCommand(LEFT, "[http]272", false);
+		defineCommand(RIGHT, "[http]273", false);
+		defineCommand("Scan Library", "VideoLibrary.ScanForContent", false);
+		defineCommand("Mute", "XBMC.ToggleMute", false);
+		
+	}
+
+	void defineEdenCommands() {
+		
 		defineCommand(BACK, "Input.Back", false);
 		defineCommand(OK, "Input.Select", false);
 		defineCommand(HOME, "Input.Home", false);
@@ -37,11 +76,10 @@ public class XbmcController extends Controller {
 		defineCommand(DOWN, "Input.Down", false);
 		defineCommand(LEFT, "Input.Left", false);
 		defineCommand(RIGHT, "Input.Right", false);
-		
-		defineKey(CUSTOM1, BACK, false, "Back");
-		defineKey(CUSTOM2, HOME, false, "Home");
+		defineCommand("Scan Library", "VideoLibrary.Scan", false);
+		defineCommand("Mute", "XBMC.ToggleMute", false);
 	}
-
+	
 	private void defineParam(String cmdName, Object... parameters) {
 		params.put(cmdName, parameters);
 	}
@@ -58,13 +96,41 @@ public class XbmcController extends Controller {
 	
 	@Override
 	public boolean execute(String action) throws RemoteException {
-		try {
+
+		if (getCommand(action).contains("[http]")) {
+			String cmd = getCommand(action).replace("[http]", "");
+			
+			HttpPost post = new HttpPost(
+					"http://"+profile.getValue(Xbmc.SERVER)+":"+profile.getValue(Xbmc.PORT)
+					+"/xbmcCmds/xbmcHttp?command=SendKey("+cmd+")");
+			post.addHeader("User-Agent",
+					"Mozilla/4.0 (compatible; MSIE 6.0; Windows 2000)");
+			
+			//Xbmc.debug("Sening command"+post.getURI());
+
+			try {
+
+	        	InputStream is = profile.getJsonClient().getHttpClient().execute(post).getEntity().getContent();
+	        	if (is != null) {
+	        		// consume reponse otherwise we get warnings
+	        		while(is.read() > 0);
+	        		is.close();
+	        	}
+				
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		else try {
 			if (!params.containsKey(action))
 				profile.getJsonClient().call(getCommand(action));
 			
 			else if (action.equals(VOL_UP) || action.equals(VOL_DOWN)){
-					profile.getJsonClient().call(getCommand(action), 
-							getVolume()+((Integer)params.get(action)[0]));
+					profile.getJsonClient().call(getCommand(action), new JSONArray().put(
+							getVolume()+((Integer)params.get(action)[0])));
 				}
 			
 			//else...
@@ -117,9 +183,22 @@ public class XbmcController extends Controller {
 	}
 
 	@Override
-	public void onItemSelected(String arg0, String arg1) throws RemoteException {
-		// TODO Auto-generated method stub
-
+	public void onItemSelected(String action, String item) throws RemoteException {
+		
+		if (profile.currentObject != null) try {
+			Xbmc.debug("TRying to play "+item+ " file: "+profile.currentObject.getString("file"));
+			
+//			JSONObject tbn = profile
+//			.getJsonClient().callJSONObject("Files.Download", 
+//					new JSONObject().put("path", item));
+					
+			profile.getJsonClient().call(getCommand(START_PLAY),
+					new JSONObject().put("file", profile.currentObject.getString("file")));
+		} catch (JSONRPCException e) {
+			e.printStackTrace();
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

@@ -12,7 +12,6 @@ public class JSONRPCTcpClient extends JSONRPCClient {
 	private Socket skt;
 	
 	public JSONRPCTcpClient(String hostname, int port) {
-		super(hostname);
 	    	try {
 				skt = new Socket(hostname, port);
 		    	skt.setSoTimeout(2000);
@@ -26,7 +25,6 @@ public class JSONRPCTcpClient extends JSONRPCClient {
 	protected JSONObject doJSONRequest(JSONObject request)
 			throws JSONRPCException {
 		
-		JsonProfile.debug(" ----------"+request.toString());
 		BufferedReader input;
 		DataOutputStream output;
 //		char []buf;
