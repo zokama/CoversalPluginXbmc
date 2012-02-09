@@ -8,7 +8,7 @@ import android.os.RemoteException;
 import android.text.InputType;
 
 import com.coversal.plugin.json.JSONRPCException;
-import com.coversal.plugin.json.zJSONRPCHttpClient;
+import com.coversal.plugin.json.JSONRPCHttpClient;
 import com.coversal.ucl.api.BrowsableAPI;
 import com.coversal.ucl.api.ControllerAPI;
 import com.coversal.ucl.api.TextParameter;
@@ -27,7 +27,7 @@ public class Xbmc extends Profile {
 	XbmcController controller = new XbmcController(this);
 	XbmcBrowser browser = new XbmcBrowser(this);
 	JSONObject currentObject;
-	zJSONRPCHttpClient session;
+	JSONRPCHttpClient session;
 
 	boolean isDharma = false;
 	
@@ -38,6 +38,8 @@ public class Xbmc extends Profile {
 		defineParameter(PORT, new TextParameter("8080", true, InputType.TYPE_CLASS_NUMBER));
 		defineParameter(USERNAME, new TextParameter("xbmc", false));
 		defineParameter(PASSWORD, new TextParameter("xbmc", false, InputType.TYPE_TEXT_VARIATION_PASSWORD));
+		
+		setOptionValue(OPTION_STARTUP, START_OPTION_REMOTE);
 	}
 		
 	@Override
@@ -61,14 +63,20 @@ public class Xbmc extends Profile {
 	}
 
 	
-	public zJSONRPCHttpClient getJsonClient() {
+	public JSONRPCHttpClient getJsonClient() {
+		if (session == null)
+			try {
+				init();
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
 		return session;
 	}
 	
 	@Override
 	public boolean init() throws RemoteException {
 //		session = new JSONRPCTcpClient(getValue(SERVER), Integer.valueOf(getValue(PORT)));
-		session = new zJSONRPCHttpClient(
+		session = new JSONRPCHttpClient(
 				getValue(SERVER), 
 				Integer.valueOf(getValue(PORT)), 
 				getValue(USERNAME), 
@@ -82,15 +90,16 @@ public class Xbmc extends Profile {
 					new JSONArray().put("System.BuildVersion")).getString("System.BuildVersion");
 			
 			if (version.matches("^10.+")) {
+				debug("DHARMA DETECTED: "+version);
 				controller.defineDharmaCommands();
 				isDharma = true;
 			}
 			else {
+				debug("EDEN DETECTED: "+version);
 				controller.defineEdenCommands();
 			}
 		} catch (JSONRPCException e) {
 			// probably didn't like the System.GetInfoLabel so lets say we're with Eden
-			debug("EDEN DETECTED (version unkunown) ");
 			controller.defineEdenCommands();
 			
 		} catch (JSONException e) {

@@ -16,6 +16,10 @@
                 <action android:name="coversal.intent.action.PROFILE" />
                 <category android:name="XBMC" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="coversal.intent.action.LAYOUT" />
+                <category android:name="xbmc_landscape"/>
+            </intent-filter>    
         </service>
     </application>
 

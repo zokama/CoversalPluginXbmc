@@ -31,7 +31,7 @@ import com.coversal.ucl.plugin.Profile;
 /**
  * Implementation of JSON-RPC over HTTP/POST
  */
-public class zJSONRPCHttpClient extends JSONRPCClient
+public class JSONRPCHttpClient extends JSONRPCClient
 {
 
 	/*
@@ -53,7 +53,7 @@ public class zJSONRPCHttpClient extends JSONRPCClient
 	 * @param uri
 	 *            uri of the service
 	 */
-	public zJSONRPCHttpClient(String hostname, int port, String username, String password)
+	public JSONRPCHttpClient(String hostname, int port, String username, String password)
 	{
 		this.hostname = hostname;
 		this.port = port;

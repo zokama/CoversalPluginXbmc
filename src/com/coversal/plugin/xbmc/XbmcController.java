@@ -1,7 +1,9 @@
 package com.coversal.plugin.xbmc;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 
@@ -27,6 +29,16 @@ public class XbmcController extends Controller {
 		profile = xbmc;
 		params = new HashMap<String, Object[]>();
 		
+		// version specific commands defined at runtime
+		// defined here as empty for automatic keymap
+		defineCommand(BACK, "", false);
+		defineCommand(OK, "", false);
+		defineCommand(HOME, "", false);
+		defineCommand(UP, "", false);
+		defineCommand(DOWN, "", false);
+		defineCommand(LEFT, "", false);
+		defineCommand(RIGHT, "", false);
+		
 		// common commands to Dharma and Eden
 		defineCommand(START_PLAY, "XBMC.Play", false);
 		defineCommand(PLAY_PAUSE, "VideoPlayer.PlayPause", false);
@@ -50,6 +62,10 @@ public class XbmcController extends Controller {
 		defineKey(CUSTOM2, HOME, false, "Home");
 		defineKey(CUSTOM3, "Mute", false, "Mute");
 		defineKey(CUSTOM4, "Media info", false, "Info");
+		defineKey("custom5", "Context menu", false, "Ctx Menu");
+		defineKey("custom6", "OSD", false, "OSD");
+		defineKey("custom7", "Shutdown menu", false, "Shutdown");
+		defineKey("custom8", "Scan Library", false, "Scan");
 
 	}
 	
@@ -129,8 +145,12 @@ public class XbmcController extends Controller {
 				profile.getJsonClient().call(getCommand(action));
 			
 			else if (action.equals(VOL_UP) || action.equals(VOL_DOWN)){
+				if (!profile.isDharma)
 					profile.getJsonClient().call(getCommand(action), new JSONArray().put(
 							getVolume()+((Integer)params.get(action)[0])));
+				else
+					profile.getJsonClient().call(getCommand(action), 
+							getVolume()+((Integer)params.get(action)[0]));
 				}
 			
 			//else...
@@ -172,14 +192,48 @@ public class XbmcController extends Controller {
 
 	@Override
 	public String getPlayingMedia() throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		HttpPost post = new HttpPost(
+				"http://"+profile.getValue(Xbmc.SERVER)+":"+profile.getValue(Xbmc.PORT)
+				+"/xbmcCmds/xbmcHttp?command=getcurrentlyplaying");
+		post.addHeader("User-Agent",
+				"Mozilla/4.0 (compatible; MSIE 6.0; Windows 2000)");
+		
+		//Xbmc.debug("GETTING PLAYING MEDIA "+post.getURI());
+
+		String playingMedia = null;
+		try {
+        	InputStream is = profile.getJsonClient().getHttpClient().execute(post).getEntity().getContent();
+        	if (is != null) {
+        		// consume reponse otherwise we get warnings
+        		String line;
+        		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        		while ((line = reader.readLine()) != null)
+        			if (line.contains("Title")) {
+        				playingMedia = line.replaceAll(".*Title:", "");
+        				break;
+        			}
+        		
+        		is.close();
+        		reader.close();
+        	}
+		} catch (IllegalStateException e) {
+			e.printStackTrace();
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+        	
+		return playingMedia;
 	}
 
 	@Override
 	public boolean isPlaying() throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		if (getPlayingMedia() == null)
+			return false;
+		else 
+			return true;
 	}
 
 	@Override
@@ -201,4 +255,5 @@ public class XbmcController extends Controller {
 		}
 	}
 
+	
 }
