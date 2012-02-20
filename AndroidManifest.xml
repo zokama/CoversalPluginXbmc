@@ -18,7 +18,7 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="coversal.intent.action.LAYOUT" />
-                <category android:name="xbmc_landscape"/>
+                <category android:name="coversal"/>
             </intent-filter>    
         </service>
     </application>

@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.coversal.ucl.widget.CoversalLayout 
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:uclib="namespace"
+
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" 
+    android:layout_weight="1"
+    android:tag="landscape_mode">
+    
+
+	
+<com.coversal.ucl.widget.CoversalLayout 
+	android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:background="@drawable/coversal_bg_playing_media"
+    android:layout_height="60dp"
+    android:gravity="center">
+        <TextView 
+	    	android:tag="controlset_name"
+	    	android:text="Control Set name"
+	    	android:layout_width="wrap_content"
+	    	android:layout_height="wrap_content"
+	    	android:textColor="#5f8dd3"
+   			android:textSize="15sp"
+   			android:singleLine="true"
+	    	android:gravity="left"
+	    	android:paddingLeft="5dp"
+	    	android:paddingRight="5dp"
+	    	android:shadowColor="#000"
+	    	android:shadowRadius="3"/>
+        
+    <TextView 
+		android:tag="playing_media_textview"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textSize="20sp"
+		android:textColor="#ffffff"
+		android:text="-"
+		android:singleLine="true"
+	    android:ellipsize="marquee"
+	    android:marqueeRepeatLimit="marquee_forever" 
+	    android:gravity="center"
+	    android:layout_weight="1"/>
+</com.coversal.ucl.widget.CoversalLayout>    
+
+
+<LinearLayout 
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#fff">
+    
+    <com.coversal.ucl.widget.BrowserView
+        android:tag="browser"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    android:background="#0f0"
+	    android:layout_weight="1"
+	    android:layout_margin="2dp"/>
+        
+    <LinearLayout 
+    android:orientation="vertical"
+    android:gravity="center"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#444"
+    android:layout_weight="1.5"
+    android:layout_margin="2dp"
+    android:padding="3dp">
+   
+	<com.coversal.ucl.widget.Key
+	    android:tag="custom1"
+	    uclib:caption="custom1"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>
+	
+	<com.coversal.ucl.widget.Key
+	    android:tag="custom2"
+	    uclib:caption="custom2"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>
+	    
+	<com.coversal.ucl.widget.Key
+	    android:tag="custom3"
+	    uclib:caption="custom3"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>
+	
+	<com.coversal.ucl.widget.Key
+	    android:tag="custom4"
+	    uclib:caption="custom4"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>
+             
+    <com.coversal.ucl.widget.Key
+        android:tag="custom5"
+        uclib:caption="custom5"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>
+    
+	 <com.coversal.ucl.widget.Key
+	    android:tag="custom6"
+	    uclib:caption="custom6"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>
+	         
+	 <com.coversal.ucl.widget.Key
+	    android:tag="custom7"
+	    uclib:caption="custom7"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>
+
+	<com.coversal.ucl.widget.Key
+	    android:tag="custom8"
+	    uclib:caption="custom8"
+	    android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:layout_margin="2dp"/>	   
+        
+	<com.coversal.ucl.widget.CoversalImageView 
+	    android:src="@drawable/logo"
+        android:layout_height="100dip"
+        android:layout_width="100dip"
+        android:padding="5dp"/>
+    </LinearLayout>
+
+    
+    
+<com.coversal.ucl.widget.CoversalRelativeLayout
+    android:gravity="center_horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#444"
+    android:layout_weight="1"
+  	android:layout_margin="2dp"
+  	android:padding="5dp">
+    
+    <LinearLayout 
+        android:id="@+id/volume"
+        android:layout_alignTop="@+id/dpad"
+        android:layout_alignBottom="@id/dpad"
+        
+        android:orientation="vertical"
+	    android:gravity="center_vertical"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:paddingRight="3dp">
+	        <com.coversal.ucl.widget.Key 
+	        	android:tag="volume_up"
+		        android:src="@drawable/coversal_volup"
+		        android:background="@drawable/rhys_medium_key"
+		        android:layout_height="wrap_content"
+		        android:layout_width="wrap_content"
+		        android:layout_marginBottom="15dp"/>
+		    <com.coversal.ucl.widget.Key
+		    	android:tag="volume_down"
+		        android:src="@drawable/coversal_voldown"
+		        android:background="@drawable/rhys_medium_key"
+		        android:layout_height="wrap_content"
+		        android:layout_width="wrap_content"/>
+	</LinearLayout>    
+	
+       <!-- D-Pad -->
+    <com.coversal.ucl.widget.CoversalRelativeLayout
+        android:id="@id/dpad"
+        android:layout_toRightOf="@id/volume"
+        android:layout_alignParentRight="true"
+                
+		android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:background="@drawable/dpad_bg"
+	    android:gravity="center"
+	    android:padding="5dp">
+
+        <com.coversal.ucl.widget.Key 
+		    android:id="@+id/up"
+			android:layout_toRightOf="@+id/left"		    
+		    android:layout_marginLeft="-15dp"
+						
+		    android:src="@drawable/up"
+	        android:tag="up"
+	        android:background="@drawable/rhys_large_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+
+   		<com.coversal.ucl.widget.Key 
+		    android:id="@id/left"
+		    android:layout_below="@id/up"
+		    android:layout_marginTop="-15dp"		    
+		    
+	        		    
+	        android:src="@drawable/left"
+	        android:tag="left"
+	        android:background="@drawable/rhys_large_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+
+        <com.coversal.ucl.widget.Key 
+			android:layout_above="@id/left"
+			android:layout_alignRight="@id/left"
+			android:layout_marginBottom="25dp"
+			android:layout_marginRight="25dp"
+			
+		    android:src="@drawable/back2"
+	        android:tag="back"
+	        android:background="@drawable/rhys_small_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+           				        
+
+		
+		<com.coversal.ucl.widget.Key 
+		    android:id="@+id/right"
+		    android:layout_below="@id/up"
+		    android:layout_toRightOf="@id/up"
+		    		    
+	        android:src="@drawable/right"
+	        android:tag="right"
+	        android:background="@drawable/rhys_large_key"
+	        android:scaleType="centerInside"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"
+	        android:layout_marginTop="-15dp"
+	        android:layout_marginLeft="-15dp"/>
+		
+		
+		<com.coversal.ucl.widget.Key 
+		    android:layout_alignLeft="@id/right"
+		    android:layout_above="@id/right"
+		    android:layout_marginBottom="25dp"
+			android:layout_marginLeft="25dp"
+		    
+	        android:src="@drawable/ok"
+	        android:tag="ok"
+	        android:background="@drawable/rhys_small_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+		       	
+		<com.coversal.ucl.widget.Key
+		    android:layout_below="@id/left"
+		     android:layout_alignLeft="@id/up"
+		       		    
+	        android:src="@drawable/down"
+	        android:tag="down"
+	        android:background="@drawable/rhys_large_key"
+	        android:scaleType="centerInside"
+            android:layout_height="wrap_content"
+        	android:layout_width="wrap_content"
+        	android:layout_marginTop="-15dp"/>
+    </com.coversal.ucl.widget.CoversalRelativeLayout>
+    <!-- LinearLayout 
+		android:orientation="vertical"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent">
+	    <TextView android:text="Gesture command"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:paddingLeft="6dip"
+			android:textColor="#162d50"
+			android:background="#ececec"></TextView>
+		<com.coversal.ucl.widget.GestureArea
+			android:tag="gesture_area"
+		    android:layout_width="fill_parent"
+		    android:layout_height="fill_parent"
+		    android:layout_margin="1dp"/>
+	</LinearLayout-->    
+    
+
+	<com.coversal.ucl.widget.CoversalRelativeLayout 
+	    android:id="@+id/player_control"
+	    android:layout_below="@id/dpad"
+	     android:layout_alignParentBottom="true"
+	    android:layout_alignParentRight="true"
+	    android:layout_toRightOf="@id/volume"
+	
+	    android:orientation="horizontal"
+	    android:gravity="center"
+	    android:layout_marginBottom="1dp"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent">
+
+	   <com.coversal.ucl.widget.Key
+	        android:id="@+id/rewind"	       
+			
+			android:tag="rewind"
+	        android:src="@drawable/coversal_rewind"
+	        android:background="@drawable/rhys_medium_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>   
+	        	    
+	    <com.coversal.ucl.widget.Key
+	        android:id="@+id/play"
+			android:layout_toRightOf="@id/rewind"
+			android:layout_marginTop="-9dp"
+			android:layout_marginLeft="5dp"
+			android:layout_marginRight="5dp"
+
+		  	android:tag="play_pause"
+	        android:src="@drawable/coversal_play"
+	        android:background="@drawable/rhys_large_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+
+	    <com.coversal.ucl.widget.Key
+	        android:layout_toRightOf="@id/play"
+	        android:tag="forward" 
+	        android:src="@drawable/coversal_forward"
+	        android:background="@drawable/rhys_medium_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/> 
+	        
+		<com.coversal.ucl.widget.Key
+		    android:layout_below="@id/play"
+		    android:layout_alignLeft="@id/play"
+		    android:layout_marginLeft="-50dp"
+		       	    
+	       	android:tag="previous"
+	        android:src="@drawable/coversal_previous"
+	        android:background="@drawable/rhys_small_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+		
+	   	<com.coversal.ucl.widget.Key
+	   	    android:layout_below="@id/play"
+	   	    android:layout_alignRight="@id/play"
+	   	    android:layout_marginRight="-50dp"
+	  	   	       	    
+	       	android:tag="next"
+	        android:src="@drawable/coversal_next"
+	        android:background="@drawable/rhys_small_key"
+	        android:scaleType="centerInside"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+	</com.coversal.ucl.widget.CoversalRelativeLayout>
+
+	<LinearLayout 
+	    android:layout_below="@id/dpad"
+	    android:layout_alignParentBottom="true"
+	    android:layout_alignParentLeft="true"
+	    android:layout_toRightOf="@id/volume"
+	
+	    android:orientation="horizontal"
+	    android:gravity="center"
+	    android:layout_marginBottom="1dp"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content">
+		    
+	   	<com.coversal.ucl.widget.Key   	    
+	       	android:tag="stop"
+	        android:src="@drawable/coversal_stop"
+	        android:background="@drawable/rhys_medium_key"
+	        android:layout_height="wrap_content"
+	        android:layout_width="wrap_content"/>
+	</LinearLayout>		  	
+
+	<!-- LinearLayout 
+	    android:layout_alignParentBottom="true"
+	    android:layout_alignParentLeft="true"
+	    android:layout_alignParentRight="true"
+	
+	    android:orientation="horizontal"
+	    android:gravity="center"
+	    android:layout_width="fill_parent"
+	    android:layout_height="wrap_content">
+	   	
+    <com.coversal.ucl.widget.Key
+    	android:tag="power"
+        android:src="@drawable/coversal_power"
+        android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_margin="5dp"
+        android:layout_weight="1"/>
+    
+     <com.coversal.ucl.widget.Key
+        android:tag="fullscreen"
+        android:src="@drawable/coversal_fullscreen"
+        android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_margin="5dp"
+        android:layout_weight="1"/>         
+             
+    <com.coversal.ucl.widget.Key
+        android:tag="info" 
+        android:src="@drawable/coversal_info"
+        android:background="@drawable/default_key"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_margin="5dp"
+        android:layout_weight="1"/>
+    </LinearLayout-->
+
+</com.coversal.ucl.widget.CoversalRelativeLayout>
+</LinearLayout>
+</com.coversal.ucl.widget.CoversalLayout>

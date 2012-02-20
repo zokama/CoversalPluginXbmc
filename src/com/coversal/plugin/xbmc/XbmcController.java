@@ -6,8 +6,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,7 +29,8 @@ public class XbmcController extends Controller {
 	HashMap<String, Object[]> params;
 	
 	public XbmcController(Xbmc xbmc) {
-	
+		super(xbmc);
+		
 		profile = xbmc;
 		params = new HashMap<String, Object[]>();
 		
@@ -57,7 +62,7 @@ public class XbmcController extends Controller {
 		defineCommand("Media info", "[http]0xF049)", false);
 		defineCommand(FULLSCREEN, "[http]0xF009", false);
 		defineCommand("OSD", "[http]274", false);
-		
+
 		defineKey(CUSTOM1, BACK, false, "Back");
 		defineKey(CUSTOM2, HOME, false, "Home");
 		defineKey(CUSTOM3, "Mute", false, "Mute");
@@ -111,8 +116,9 @@ public class XbmcController extends Controller {
 	}
 	
 	@Override
-	public boolean execute(String action) throws RemoteException {
+	public boolean execute(final String action) throws RemoteException {
 
+		// generate a thread in order to avoid delays
 		if (getCommand(action).contains("[http]")) {
 			String cmd = getCommand(action).replace("[http]", "");
 			
@@ -156,9 +162,10 @@ public class XbmcController extends Controller {
 			//else...
 			
 		} catch (JSONRPCException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
-		return false;
+			
+		return true;
 	}
 
 	@Override
@@ -201,31 +208,39 @@ public class XbmcController extends Controller {
 		//Xbmc.debug("GETTING PLAYING MEDIA "+post.getURI());
 
 		String playingMedia = null;
+		String fileName = null;
+		
 		try {
-        	InputStream is = profile.getJsonClient().getHttpClient().execute(post).getEntity().getContent();
+        	InputStream is = profile.getJsonClient().getHttpClient()
+        			.execute(post).getEntity().getContent();
         	if (is != null) {
         		// consume reponse otherwise we get warnings
         		String line;
         		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        		while ((line = reader.readLine()) != null)
-        			if (line.contains("Title")) {
-        				playingMedia = line.replaceAll(".*Title:", "");
-        				break;
-        			}
         		
+        		while ((line = reader.readLine()) != null) {
+        			for (String s: line.split("<li>")) {
+	        			if (s.contains("Title")) {
+	        				playingMedia = s.replaceAll("^.*Title:", "");
+	        				break;
+	        			} 
+	        			else if (fileName == null && s.contains("Filename"))
+	        				fileName = s.replaceAll("^Filename:.+/", "");
+        			}
+        		}
+
         		is.close();
         		reader.close();
         	}
 		} catch (IllegalStateException e) {
-			e.printStackTrace();
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
 		}
 
-        	
-		return playingMedia;
+        if (playingMedia == null && fileName != null && !fileName.contains("Nothing Playing"))
+        	return fileName;
+        else
+        	return playingMedia;
 	}
 
 	@Override
@@ -239,20 +254,23 @@ public class XbmcController extends Controller {
 	@Override
 	public void onItemSelected(String action, String item) throws RemoteException {
 		
-		if (profile.currentObject != null) try {
-			Xbmc.debug("TRying to play "+item+ " file: "+profile.currentObject.getString("file"));
+		if (profile.currentObject != null)
+			Executors.newSingleThreadExecutor().execute(new Runnable(){
 			
-//			JSONObject tbn = profile
-//			.getJsonClient().callJSONObject("Files.Download", 
-//					new JSONObject().put("path", item));
-					
-			profile.getJsonClient().call(getCommand(START_PLAY),
+			@Override
+			public void run() {
+				//Xbmc.debug("TRying to play "+item+ " file: "+profile.currentObject.getString("file"));
+
+				try {
+					 profile.getJsonClient().call(getCommand(START_PLAY),
 					new JSONObject().put("file", profile.currentObject.getString("file")));
-		} catch (JSONRPCException e) {
-			e.printStackTrace();
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
+				} catch (JSONRPCException e) {
+					e.printStackTrace();
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+			}});
+
 	}
 
 	

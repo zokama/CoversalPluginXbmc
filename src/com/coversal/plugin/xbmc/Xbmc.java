@@ -22,7 +22,7 @@ public class Xbmc extends Profile {
 	static final String PORT = "Port";
 	private static final String USERNAME = "Username (optional)";
 	private static final String PASSWORD = "Password (optional)";
-	private static final int TIMEOUT = 2000;
+	static final int TIMEOUT = 2000;
 	
 	XbmcController controller = new XbmcController(this);
 	XbmcBrowser browser = new XbmcBrowser(this);
@@ -80,7 +80,7 @@ public class Xbmc extends Profile {
 				getValue(SERVER), 
 				Integer.valueOf(getValue(PORT)), 
 				getValue(USERNAME), 
-				getValue(PASSWORD));
+				getDecryptedValue(PASSWORD));
 		session.setConnectionTimeout(TIMEOUT);
 		session.setSoTimeout(TIMEOUT);
 		
@@ -90,12 +90,12 @@ public class Xbmc extends Profile {
 					new JSONArray().put("System.BuildVersion")).getString("System.BuildVersion");
 			
 			if (version.matches("^10.+")) {
-				debug("DHARMA DETECTED: "+version);
+				//debug("DHARMA DETECTED: "+version);
 				controller.defineDharmaCommands();
 				isDharma = true;
 			}
 			else {
-				debug("EDEN DETECTED: "+version);
+				//debug("EDEN DETECTED: "+version);
 				controller.defineEdenCommands();
 			}
 		} catch (JSONRPCException e) {

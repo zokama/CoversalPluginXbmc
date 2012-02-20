@@ -25,8 +25,6 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.coversal.ucl.plugin.Profile;
-
 
 /**
  * Implementation of JSON-RPC over HTTP/POST
@@ -64,8 +62,12 @@ public class JSONRPCHttpClient extends JSONRPCClient
 		HttpParams params = new BasicHttpParams();
 		SchemeRegistry registry = new SchemeRegistry();
 		registry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), port));
-		ClientConnectionManager cm = new ThreadSafeClientConnManager(params, registry);
+		HttpConnectionParams.setConnectionTimeout(params, 2000);
+		HttpConnectionParams.setSoTimeout(params, 2000);
+		HttpProtocolParams.setVersion(params, PROTOCOL_VERSION);
 
+		ClientConnectionManager cm = new ThreadSafeClientConnManager(params, registry);
+		
 		httpClient = new DefaultHttpClient(cm, params);
 		
 		// authentication
@@ -85,11 +87,9 @@ public class JSONRPCHttpClient extends JSONRPCClient
 	{
 		// Create HTTP/POST request with a JSON entity containing the request
 		HttpPost request = new HttpPost("http://"+hostname+":"+port+"/jsonrpc");
-		HttpParams params = new BasicHttpParams();
-		HttpConnectionParams.setConnectionTimeout(params, getConnectionTimeout());
-		HttpConnectionParams.setSoTimeout(params, getSoTimeout());
-		HttpProtocolParams.setVersion(params, PROTOCOL_VERSION);
-		request.setParams(params);
+//		HttpParams params = new BasicHttpParams();
+//		
+//		request.setParams(params);
 
 		StringEntity entity;
 		try
@@ -97,7 +97,7 @@ public class JSONRPCHttpClient extends JSONRPCClient
 			entity = new JSONEntity(jsonRequest);
             
     		request.setEntity(entity);
-    		Profile.debug(" ---------->"+jsonRequest.toString());
+    		//Profile.debug(" ---------->"+jsonRequest.toString());
 		}
 		catch (UnsupportedEncodingException e1)	{
 			throw new JSONRPCException("Unsupported encoding", e1);
@@ -108,10 +108,8 @@ public class JSONRPCHttpClient extends JSONRPCClient
 		try
 		{
 			// Execute the request and try to decode the JSON Response
-			long t = System.currentTimeMillis();
-			HttpResponse response = httpClient.execute(request);
-			t = System.currentTimeMillis() - t;
 			
+			HttpResponse response = httpClient.execute(request);
 			responseString = EntityUtils.toString(response.getEntity());
 			responseString = responseString.trim();
 			

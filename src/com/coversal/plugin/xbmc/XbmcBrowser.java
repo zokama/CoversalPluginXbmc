@@ -6,7 +6,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -92,6 +91,7 @@ public class XbmcBrowser extends Browsable {
 			e.printStackTrace();
 		}		
 		
+		if (btm == null) return null;
 		
 		// resizing bitmap
 		int width = btm.getWidth(); 
@@ -111,6 +111,7 @@ public class XbmcBrowser extends Browsable {
 	
 	private JSONArray browsePath(String item) throws JSONRPCException, JSONException {
 		JSONObject param = new JSONObject().put("directory", item);
+		//param.put("media", "video");//new JSONArray().put("video").put("music").put("picture"));
 		
 		JSONObject tmpResult = profile
 				.getJsonClient()
@@ -276,12 +277,15 @@ public class XbmcBrowser extends Browsable {
 						
 			return downloadBitmap(tbnUrl);
 
-		} catch (JSONRPCException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
-		} catch (JSONException e) {
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		} 
+		}
+//		} catch (JSONRPCException e) {
+//			e.printStackTrace();
+//		} catch (JSONException e) {
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//		} 
 
 		return null;
 	}
