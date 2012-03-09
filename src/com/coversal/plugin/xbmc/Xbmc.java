@@ -1,10 +1,9 @@
 package com.coversal.plugin.xbmc;
 
-import org.json.JSONArray;
-import org.json.JSONException;
+
+import org.apache.http.client.methods.HttpPost;
 import org.json.JSONObject;
 
-import android.os.RemoteException;
 import android.text.InputType;
 
 import com.coversal.plugin.json.JSONRPCException;
@@ -12,7 +11,7 @@ import com.coversal.plugin.json.JSONRPCHttpClient;
 import com.coversal.ucl.api.BrowsableAPI;
 import com.coversal.ucl.api.ControllerAPI;
 import com.coversal.ucl.api.TextParameter;
-import com.coversal.ucl.plugin.PluginAnnouncer;
+import com.coversal.ucl.plugin.ProfileAnnouncer;
 import com.coversal.ucl.plugin.Profile;
 
 
@@ -29,9 +28,9 @@ public class Xbmc extends Profile {
 	JSONObject currentObject;
 	JSONRPCHttpClient session;
 
-	boolean isDharma = false;
+	int apiVersion = 0;
 	
-	public Xbmc(PluginAnnouncer pa) {
+	public Xbmc(ProfileAnnouncer pa) {
 		super(pa);
 		
 		defineParameter(SERVER, new TextParameter(null, true));
@@ -43,12 +42,12 @@ public class Xbmc extends Profile {
 	}
 		
 	@Override
-	public ControllerAPI getController() throws RemoteException {
+	public ControllerAPI getController() {
 		return controller;
 	}
 	
 	@Override
-	public BrowsableAPI getBrowser() throws RemoteException {
+	public BrowsableAPI getBrowser() {
 		return browser;
 	}
 
@@ -65,69 +64,93 @@ public class Xbmc extends Profile {
 	
 	public JSONRPCHttpClient getJsonClient() {
 		if (session == null)
-			try {
 				init();
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
+			
 		return session;
 	}
 	
 	@Override
-	public boolean init() throws RemoteException {
+	public boolean init() {
 //		session = new JSONRPCTcpClient(getValue(SERVER), Integer.valueOf(getValue(PORT)));
-		session = new JSONRPCHttpClient(
-				getValue(SERVER), 
-				Integer.valueOf(getValue(PORT)), 
-				getValue(USERNAME), 
-				getDecryptedValue(PASSWORD));
-		session.setConnectionTimeout(TIMEOUT);
-		session.setSoTimeout(TIMEOUT);
-		
-		// determinate version
 		try {
-			String version = session.callJSONObject("System.GetInfoLabels",
-					new JSONArray().put("System.BuildVersion")).getString("System.BuildVersion");
+			session = new JSONRPCHttpClient(
+					getValue(SERVER), 
+					Integer.valueOf(getValue(PORT)), 
+					getValue(USERNAME), 
+					getDecryptedValue(PASSWORD));
+			session.setConnectionTimeout(TIMEOUT);
+			session.setSoTimeout(TIMEOUT);
+
 			
-			if (version.matches("^10.+")) {
+			// determinate version
+			apiVersion = session.callJSONObject("JSONRPC.Version").getInt("version");
+			//Xbmc.debug("\n\n-----CHECKING API VERSION "+apiVersion);
+			
+//			String version = session.callJSONObject("System.GetInfoLabels",
+//					new JSONArray().put("System.BuildVersion")).getString("System.BuildVersion");
+//
+//			session.callJSONObject("System.GetInfoLabels",
+//					new JSONObject().put("labels", new JSONArray()
+//					.put("System.BuildVersion"))).getString("System.BuildVersion");
+		
+			switch (apiVersion) {
+			case 2:
 				//debug("DHARMA DETECTED: "+version);
 				controller.defineDharmaCommands();
-				isDharma = true;
-			}
-			else {
+				break;
+			case 3:
 				//debug("EDEN DETECTED: "+version);
 				controller.defineEdenCommands();
+				break;
+			case 4:
+			default:
+				// tbd
+				break;
 			}
-		} catch (JSONRPCException e) {
-			// probably didn't like the System.GetInfoLabel so lets say we're with Eden
-			controller.defineEdenCommands();
 			
-		} catch (JSONException e) {
+		} catch (JSONRPCException e) {
 			e.printStackTrace();
+			return false;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
 		}
 		
-		return true; //session.isConnected();
+		return true;//session.isConnected();
 	}
 	
 
 	@Override
-	public void close() throws RemoteException {
+	public void close() {
 		session = null;
 	}
 
 	@Override
-	public boolean isActive() throws RemoteException {
+	public boolean isActive() {
 		if (session == null) return false;
-		else return true; //session.isConnected();
-	}
-
-	@Override
-	public boolean isPasswordRequired() throws RemoteException {
+		else
+			try {
+				HttpPost post = new HttpPost(
+						"http://"+getValue(Xbmc.SERVER)+":"+getValue(Xbmc.PORT));
+				post.addHeader("User-Agent",
+						"Mozilla/4.0 (compatible; MSIE 6.0; Windows 2000)");
+				
+				if (session.getHttpClient().execute(post)!= null)
+					return true;
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
 		return false;
 	}
 
 	@Override
-	public void setPassword(String arg0) throws RemoteException {
+	public boolean isPasswordRequired() {
+		return false;
+	}
+
+	@Override
+	public void setPassword(String arg0) {
 	}
 
 	@Override

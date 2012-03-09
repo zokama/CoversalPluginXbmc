@@ -65,7 +65,7 @@ public class JSONRPCHttpClient extends JSONRPCClient
 		HttpConnectionParams.setConnectionTimeout(params, 2000);
 		HttpConnectionParams.setSoTimeout(params, 2000);
 		HttpProtocolParams.setVersion(params, PROTOCOL_VERSION);
-
+		
 		ClientConnectionManager cm = new ThreadSafeClientConnManager(params, registry);
 		
 		httpClient = new DefaultHttpClient(cm, params);

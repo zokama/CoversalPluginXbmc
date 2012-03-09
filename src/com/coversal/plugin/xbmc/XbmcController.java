@@ -8,10 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -101,6 +98,37 @@ public class XbmcController extends Controller {
 		defineCommand("Mute", "XBMC.ToggleMute", false);
 	}
 	
+	void defineAudioCommands() {
+		
+		defineCommand(PLAY_PAUSE, "AudioPlayer.PlayPause", false);
+		defineCommand(STOP, "AudioPlayer.Stop", false);
+		defineCommand(REWIND, "AudioPlayer.SmallSkipBackward", false);
+		defineCommand(FORWARD, "AudioPlayer.SmallSkipForward", false);
+		defineCommand(NEXT, "AudioPlayer.SkipNext", false);
+		defineCommand(PREVIOUS, "AudioPlayer.SkipPrevious", false);		
+	}
+	
+	void defineVideoCommands() {
+		
+		defineCommand(PLAY_PAUSE, "VideoPlayer.PlayPause", false);
+		defineCommand(STOP, "VideoPlayer.Stop", false);
+		defineCommand(REWIND, "VideoPlayer.SmallSkipBackward", false);
+		defineCommand(FORWARD, "VideoPlayer.SmallSkipForward", false);
+		defineCommand(NEXT, "VideoPlayer.SkipNext", false);
+		defineCommand(PREVIOUS, "VideoPlayer.SkipPrevious", false);		
+	}
+	
+	void definePictureCommands() {
+		
+		defineCommand(PLAY_PAUSE, " PicturePlayer.PlayPause", false);
+		defineCommand(STOP, " PicturePlayer.Stop", false);
+		defineCommand(REWIND, "PicturePlayer.ZoomOut", false);
+		defineCommand(FORWARD, "PicturePlayer.ZoomIn", false);
+		defineCommand(NEXT, "PicturePlayer.SkipNext", false);
+		defineCommand(PREVIOUS, "PicturePlayer.SkipPrevious", false);
+		
+	}
+
 	private void defineParam(String cmdName, Object... parameters) {
 		params.put(cmdName, parameters);
 	}
@@ -151,7 +179,7 @@ public class XbmcController extends Controller {
 				profile.getJsonClient().call(getCommand(action));
 			
 			else if (action.equals(VOL_UP) || action.equals(VOL_DOWN)){
-				if (!profile.isDharma)
+				if (profile.apiVersion>2)
 					profile.getJsonClient().call(getCommand(action), new JSONArray().put(
 							getVolume()+((Integer)params.get(action)[0])));
 				else
@@ -199,6 +227,26 @@ public class XbmcController extends Controller {
 
 	@Override
 	public String getPlayingMedia() throws RemoteException {
+		
+		// determinate player type (video, audio, picture)
+		try {
+			JSONObject activePlayers = profile.getJsonClient().callJSONObject("Player.GetActivePlayers");
+			
+			if (activePlayers.getBoolean("audio"))
+				defineAudioCommands();
+			
+			else if (activePlayers.getBoolean("picture"))
+				definePictureCommands();
+			
+			else 
+				defineVideoCommands();
+			
+		} catch (JSONRPCException e) {
+			e.printStackTrace();
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
 		HttpPost post = new HttpPost(
 				"http://"+profile.getValue(Xbmc.SERVER)+":"+profile.getValue(Xbmc.PORT)
 				+"/xbmcCmds/xbmcHttp?command=getcurrentlyplaying");
@@ -263,7 +311,8 @@ public class XbmcController extends Controller {
 
 				try {
 					 profile.getJsonClient().call(getCommand(START_PLAY),
-					new JSONObject().put("file", profile.currentObject.getString("file")));
+							 new JSONObject().put("file", profile.currentObject.getString("file")));					 
+					 
 				} catch (JSONRPCException e) {
 					e.printStackTrace();
 				} catch (JSONException e) {
