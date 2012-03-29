@@ -1,6 +1,7 @@
 package com.coversal.plugin.xbmc;
 
 
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.json.JSONObject;
 
@@ -11,6 +12,7 @@ import com.coversal.plugin.json.JSONRPCHttpClient;
 import com.coversal.ucl.api.BrowsableAPI;
 import com.coversal.ucl.api.ControllerAPI;
 import com.coversal.ucl.api.TextParameter;
+import com.coversal.ucl.plugin.PlaylistManager;
 import com.coversal.ucl.plugin.ProfileAnnouncer;
 import com.coversal.ucl.plugin.Profile;
 
@@ -24,10 +26,13 @@ public class Xbmc extends Profile {
 	static final int TIMEOUT = 2000;
 	
 	XbmcController controller = new XbmcController(this);
-	XbmcBrowser browser = new XbmcBrowser(this);
+	XbmcBrowser browser = null;
+	XbmcPlaylist playlist = new XbmcPlaylist(this);
 	JSONObject currentObject;
 	JSONRPCHttpClient session;
-
+	
+	int currentPlayerId = 0;
+	int currentPlaylistPosition = -1;
 	int apiVersion = 0;
 	
 	public Xbmc(ProfileAnnouncer pa) {
@@ -36,7 +41,8 @@ public class Xbmc extends Profile {
 		defineParameter(SERVER, new TextParameter(null, true));
 		defineParameter(PORT, new TextParameter("8080", true, InputType.TYPE_CLASS_NUMBER));
 		defineParameter(USERNAME, new TextParameter("xbmc", false));
-		defineParameter(PASSWORD, new TextParameter("xbmc", false, InputType.TYPE_TEXT_VARIATION_PASSWORD));
+		defineParameter(PASSWORD, new TextParameter(null, false, InputType.TYPE_TEXT_VARIATION_PASSWORD));
+		
 		
 		setOptionValue(OPTION_STARTUP, START_OPTION_REMOTE);
 	}
@@ -49,6 +55,11 @@ public class Xbmc extends Profile {
 	@Override
 	public BrowsableAPI getBrowser() {
 		return browser;
+	}
+	
+	@Override
+	public PlaylistManager getPlaylistManager() {
+		return playlist;
 	}
 
 	@Override
@@ -85,28 +96,9 @@ public class Xbmc extends Profile {
 			// determinate version
 			apiVersion = session.callJSONObject("JSONRPC.Version").getInt("version");
 			//Xbmc.debug("\n\n-----CHECKING API VERSION "+apiVersion);
-			
-//			String version = session.callJSONObject("System.GetInfoLabels",
-//					new JSONArray().put("System.BuildVersion")).getString("System.BuildVersion");
-//
-//			session.callJSONObject("System.GetInfoLabels",
-//					new JSONObject().put("labels", new JSONArray()
-//					.put("System.BuildVersion"))).getString("System.BuildVersion");
-		
-			switch (apiVersion) {
-			case 2:
-				//debug("DHARMA DETECTED: "+version);
-				controller.defineDharmaCommands();
-				break;
-			case 3:
-				//debug("EDEN DETECTED: "+version);
-				controller.defineEdenCommands();
-				break;
-			case 4:
-			default:
-				// tbd
-				break;
-			}
+
+			controller.initCommands(apiVersion);
+
 			
 		} catch (JSONRPCException e) {
 			e.printStackTrace();
@@ -116,6 +108,8 @@ public class Xbmc extends Profile {
 			return false;
 		}
 		
+		 browser = new XbmcBrowser(this);
+		 
 		return true;//session.isConnected();
 	}
 	
@@ -135,8 +129,10 @@ public class Xbmc extends Profile {
 				post.addHeader("User-Agent",
 						"Mozilla/4.0 (compatible; MSIE 6.0; Windows 2000)");
 				
-				if (session.getHttpClient().execute(post)!= null)
-					return true;
+				HttpResponse response = session.getHttpClient().execute(post);
+				response.getEntity().consumeContent();
+				
+				if (response != null) return true;
 				
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -156,10 +152,5 @@ public class Xbmc extends Profile {
 	@Override
 	public String getTargetNameField() {
 		return SERVER;
-	}
-
-	@Override
-	public void onConfigurationUpdate() {
-
 	}
 }

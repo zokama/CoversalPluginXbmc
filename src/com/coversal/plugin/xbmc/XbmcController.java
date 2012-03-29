@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -23,102 +24,31 @@ public class XbmcController extends Controller {
 
 	
 	Xbmc profile;
-	HashMap<String, Object[]> params;
+	HashMap<String, Object> params;
 	
 	public XbmcController(Xbmc xbmc) {
 		super(xbmc);
 		
 		profile = xbmc;
-		params = new HashMap<String, Object[]>();
+		params = new HashMap<String, Object>();
 		
-		// version specific commands defined at runtime
-		// defined here as empty for automatic keymap
-		defineCommand(BACK, "", false);
-		defineCommand(OK, "", false);
-		defineCommand(HOME, "", false);
-		defineCommand(UP, "", false);
-		defineCommand(DOWN, "", false);
-		defineCommand(LEFT, "", false);
-		defineCommand(RIGHT, "", false);
+		try {
+			initCommands(-1);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
 		
-		// common commands to Dharma and Eden
-		defineCommand(START_PLAY, "XBMC.Play", false);
-		defineCommand(PLAY_PAUSE, "VideoPlayer.PlayPause", false);
-		defineCommand(STOP, "VideoPlayer.Stop", false);
-		defineCommand(REWIND, "VideoPlayer.SmallSkipBackward", false);
-		defineCommand(FORWARD, "VideoPlayer.SmallSkipForward", false);
-		defineCommand(VOL_UP, "XBMC.SetVolume", false);
-		defineParam(VOL_UP, +10);
-		defineCommand(VOL_DOWN, "XBMC.SetVolume", false);
-		defineParam(VOL_DOWN, -10);
-		defineCommand(NEXT, "VideoPlayer.SkipNext", false);
-		defineCommand(PREVIOUS, "VideoPlayer.SkipPrevious", false);
-		
-		defineCommand("Shutdown menu", "[http]0xF053)", false);
-		defineCommand("Context menu", "[http]0xF043)", false);
-		defineCommand("Media info", "[http]0xF049)", false);
-		defineCommand(FULLSCREEN, "[http]0xF009", false);
-		defineCommand("OSD", "[http]274", false);
-
-		defineKey(CUSTOM1, BACK, false, "Back");
-		defineKey(CUSTOM2, HOME, false, "Home");
-		defineKey(CUSTOM3, "Mute", false, "Mute");
-		defineKey(CUSTOM4, "Media info", false, "Info");
-		defineKey("custom5", "Context menu", false, "Ctx Menu");
-		defineKey("custom6", "OSD", false, "OSD");
-		defineKey("custom7", "Shutdown menu", false, "Shutdown");
-		defineKey("custom8", "Scan Library", false, "Scan");
-
+		defineKey(CUSTOM1, HOME, false, "Home");
+		defineKey(CUSTOM2, "OSD", false, "OSD");
+		defineKey(CUSTOM3, "Context menu", false, "Ctx Menu");
+		defineKey(CUSTOM4, "Subtitles", false, "Subtitles");
+		defineKey(CUSTOM5, "Mute", false, "Mute");
+		defineKey(CUSTOM6, "Shutdown menu", false, "Shutdown");
+		defineKey(CUSTOM7, "Scan Library", false, "Scan");
 	}
 	
-	void defineDharmaCommands() {
-		
-		defineCommand(BACK, "[http]0xF008", false);
-		defineCommand(OK, "[http]0xF00d)", false);
-		defineCommand(HOME, "[http]0xF01B", false);
-		defineCommand(UP, "[http]270", false);
-		defineCommand(DOWN, "[http]271", false);
-		defineCommand(LEFT, "[http]272", false);
-		defineCommand(RIGHT, "[http]273", false);
-		defineCommand("Scan Library", "VideoLibrary.ScanForContent", false);
-		defineCommand("Mute", "XBMC.ToggleMute", false);
-		
-	}
-
-	void defineEdenCommands() {
-		
-		defineCommand(BACK, "Input.Back", false);
-		defineCommand(OK, "Input.Select", false);
-		defineCommand(HOME, "Input.Home", false);
-		defineCommand(UP, "Input.Up", false);
-		defineCommand(DOWN, "Input.Down", false);
-		defineCommand(LEFT, "Input.Left", false);
-		defineCommand(RIGHT, "Input.Right", false);
-		defineCommand("Scan Library", "VideoLibrary.Scan", false);
-		defineCommand("Mute", "XBMC.ToggleMute", false);
-	}
 	
-	void defineAudioCommands() {
-		
-		defineCommand(PLAY_PAUSE, "AudioPlayer.PlayPause", false);
-		defineCommand(STOP, "AudioPlayer.Stop", false);
-		defineCommand(REWIND, "AudioPlayer.SmallSkipBackward", false);
-		defineCommand(FORWARD, "AudioPlayer.SmallSkipForward", false);
-		defineCommand(NEXT, "AudioPlayer.SkipNext", false);
-		defineCommand(PREVIOUS, "AudioPlayer.SkipPrevious", false);		
-	}
-	
-	void defineVideoCommands() {
-		
-		defineCommand(PLAY_PAUSE, "VideoPlayer.PlayPause", false);
-		defineCommand(STOP, "VideoPlayer.Stop", false);
-		defineCommand(REWIND, "VideoPlayer.SmallSkipBackward", false);
-		defineCommand(FORWARD, "VideoPlayer.SmallSkipForward", false);
-		defineCommand(NEXT, "VideoPlayer.SkipNext", false);
-		defineCommand(PREVIOUS, "VideoPlayer.SkipPrevious", false);		
-	}
-	
-	void definePictureCommands() {
+	void zdefinePictureCommands() {
 		
 		defineCommand(PLAY_PAUSE, " PicturePlayer.PlayPause", false);
 		defineCommand(STOP, " PicturePlayer.Stop", false);
@@ -126,18 +56,149 @@ public class XbmcController extends Controller {
 		defineCommand(FORWARD, "PicturePlayer.ZoomIn", false);
 		defineCommand(NEXT, "PicturePlayer.SkipNext", false);
 		defineCommand(PREVIOUS, "PicturePlayer.SkipPrevious", false);
+	}
+	
+	void initCommands(int version) throws JSONException {
+		defineCommand("Shutdown menu", "[http]0xF053)", false);
+		defineCommand("Context menu", "[http]0xF043)", false);
+		defineCommand("Subtitles", "[http]0xF04c)", false);
+		defineCommand(INFO, "[http]0xF049)", false);
+		defineCommand(FULLSCREEN, "[http]0xF009", false);
+		defineCommand(OSD, "[http]274", false);
+		defineParam(VOL_UP, +10);
+		defineParam(VOL_DOWN, -10);
 		
+		switch (version) {
+		case 2:
+			defineCommand(BACK, "[http]0xF008", false);
+			defineCommand(OK, "[http]0xF00d)", false);
+			defineCommand(HOME, "[http]0xF01B", false);
+			defineCommand(UP, "[http]270", false);
+			defineCommand(DOWN, "[http]271", false);
+			defineCommand(LEFT, "[http]272", false);
+			defineCommand(RIGHT, "[http]273", false);
+			defineCommand("Mute", "XBMC.ToggleMute", false);
+			defineCommand(VOL_UP, "XBMC.SetVolume", false);
+			defineCommand(VOL_DOWN, "XBMC.SetVolume", false);
+			break;
+		case 3:
+			defineCommand(BACK, "Input.Back", false);
+			defineCommand(OK, "Input.Select", false);
+			defineCommand(HOME, "Input.Home", false);
+			defineCommand(UP, "Input.Up", false);
+			defineCommand(DOWN, "Input.Down", false);
+			defineCommand(LEFT, "Input.Left", false);
+			defineCommand(RIGHT, "Input.Right", false);
+			defineCommand("Mute", "XBMC.ToggleMute", false);
+			defineCommand(VOL_UP, "XBMC.SetVolume", false);
+			defineCommand(VOL_DOWN, "XBMC.SetVolume", false);
+			defineCommand(ADD_TO_PLAYLIST, "Playlist.Add", false);
+			break;
+		case 4:
+			defineCommand(START_PLAY, "Player.Open", false);
+			defineCommand(BACK, "Input.Back", false);
+			defineCommand(OK, "Input.Select", false);
+			defineCommand(HOME, "Input.Home", false);
+			defineCommand(UP, "Input.Up", false);
+			defineCommand(DOWN, "Input.Down", false);
+			defineCommand(LEFT, "Input.Left", false);
+			defineCommand(RIGHT, "Input.Right", false);
+			defineCommand("Mute", "Application.SetMute", false);
+			defineParam("Mute", new JSONObject().put("mute", "toggle"));
+			defineCommand(VOL_UP, "Application.SetVolume", false);
+			defineCommand(VOL_DOWN, "Application.SetVolume", false);
+			defineCommand(ADD_TO_PLAYLIST, "Playlist.Add", false);
+			
+			defineCommand(PLAY_PAUSE, "Player.PlayPause", false);
+			defineCommand(STOP, "Player.Stop", false);
+			defineCommand(REWIND, "Player.SetSpeed", false);
+			defineCommand(FORWARD, "Player.SetSpeed", false);
+			defineCommand(NEXT, "Player.GoNext", false);
+			defineCommand(PREVIOUS, "Player.GoPrevious", false);
+			break;
+		default:
+			defineCommand(START_PLAY, "", false);
+			defineCommand(BACK, "", false);
+			defineCommand(OK, "", false);
+			defineCommand(HOME, "", false);
+			defineCommand(UP, "", false);
+			defineCommand(DOWN, "", false);
+			defineCommand(LEFT, "", false);
+			defineCommand(RIGHT, "", false);
+			defineCommand("Mute", "", false);
+			defineCommand(VOL_UP, "", false);
+			defineCommand(VOL_DOWN, "", false);
+			defineCommand(ADD_TO_PLAYLIST, "", false);
+			defineCommand(PLAY_PAUSE, "", false);
+			defineCommand(STOP, "", false);
+			defineCommand(REWIND, "", false);
+			defineCommand(FORWARD, "", false);
+			defineCommand(NEXT, "", false);
+			defineCommand(PREVIOUS, "", false);
+			defineCommand("Scan Library", "", false);
+			break;
+		}
+	}
+	
+	private void defineCommands(String playerType, int playerId, int apiVersion) throws JSONException {
+		switch (apiVersion) {
+		case 2:
+			//audio
+			defineCommand(PLAY_PAUSE, playerType+"Player.PlayPause", false);
+			defineCommand(STOP, playerType+"Player.Stop", false);
+			defineCommand(REWIND, playerType+"Player.SmallSkipBackward", false);
+			defineCommand(FORWARD, playerType+"Player.SmallSkipForward", false);
+			defineCommand(NEXT, playerType+"Player.SkipNext", false);
+			defineCommand(PREVIOUS, playerType+"Player.SkipPrevious", false);
+			
+			defineCommand("Scan Library", playerType+"Library.ScanForContent", false);
+			defineCommand(ADD_TO_PLAYLIST, playerType+"Playlist.Add", false);			
+			break;
+			
+		case 3:
+			//audio
+			defineCommand(PLAY_PAUSE, playerType+"Player.PlayPause", false);
+			defineCommand(STOP, playerType+"Player.Stop", false);
+			defineCommand(REWIND, playerType+"Player.SmallSkipBackward", false);
+			defineCommand(FORWARD, playerType+"Player.SmallSkipForward", false);
+			defineCommand(NEXT, playerType+"Player.SkipNext", false);
+			defineCommand(PREVIOUS, playerType+"Player.SkipPrevious", false);
+			
+			defineCommand("Scan Library", playerType+"Library.Scan", false);
+			break;
+			
+		case 4:
+		default:
+			//video + audio + pictures
+			defineParam(PLAY_PAUSE, new JSONObject().put("playerid", playerId));
+			defineParam(STOP, new JSONObject().put("playerid", playerId));
+			defineParam(REWIND, new JSONObject().put("playerid", playerId).put("speed", "decrement"));
+			defineParam(FORWARD, new JSONObject().put("playerid", playerId).put("speed", "increment"));
+			defineParam(NEXT, new JSONObject().put("playerid", playerId));
+			defineParam(PREVIOUS, new JSONObject().put("playerid", playerId));
+			
+			defineCommand("Scan Library", playerType+"Library.Scan", false);
+			break;
+		}
 	}
 
-	private void defineParam(String cmdName, Object... parameters) {
-		params.put(cmdName, parameters);
+	private void defineParam(String cmdName, Object parameter) {
+		params.put(cmdName, parameter);
 	}
 	
 	private int getVolume() {
 		
 		try {
-			return (int) profile.getJsonClient().callLong("XBMC.GetVolume");
+			if (profile.apiVersion == 4)
+				return profile.getJsonClient().callJSONObject(
+						"Application.GetProperties",
+						new JSONObject().put("properties", new JSONArray().put("volume")))
+						.getInt("volume");
+			else
+				return profile.getJsonClient().callInt("XBMC.GetVolume");
 		} catch (JSONRPCException e) {
+			e.printStackTrace();
+		} catch (JSONException e) {
 			e.printStackTrace();
 		}
 		return 0;
@@ -181,25 +242,34 @@ public class XbmcController extends Controller {
 			else if (action.equals(VOL_UP) || action.equals(VOL_DOWN)){
 				if (profile.apiVersion>2)
 					profile.getJsonClient().call(getCommand(action), new JSONArray().put(
-							getVolume()+((Integer)params.get(action)[0])));
+							getVolume()+((Integer)params.get(action))));
 				else
 					profile.getJsonClient().call(getCommand(action), 
-							getVolume()+((Integer)params.get(action)[0]));
+							getVolume()+((Integer)params.get(action)));
 				}
 			
-			//else...
+			else
+				profile.getJsonClient().call(getCommand(action), params.get(action));
 			
 		} catch (JSONRPCException e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 		}
 			
 		return true;
 	}
 
 	@Override
-	public List<String> getContextMenuItems(int arg0) throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+	public List<String> getContextMenuItems(int type) throws RemoteException {
+		List<String> list = new ArrayList<String>();
+		
+//		if (((XbmcBrowser)profile.getBrowser()).currentBrowserObject.method != null) {
+//			if (type == ITEM_TYPE_DIRECTORY)
+//				list.add("Add folder to playlist");
+//			else
+//				list.add("Add to playlist");
+//		}
+		
+		return list;
 	}
 
 	@Override
@@ -210,7 +280,7 @@ public class XbmcController extends Controller {
 
 	@Override
 	public String getLayoutName() throws RemoteException {
-		return "rhys";
+		return "coversal1";
 	}
 
 	@Override
@@ -230,17 +300,41 @@ public class XbmcController extends Controller {
 		
 		// determinate player type (video, audio, picture)
 		try {
-			JSONObject activePlayers = profile.getJsonClient().callJSONObject("Player.GetActivePlayers");
 			
-			if (activePlayers.getBoolean("audio"))
-				defineAudioCommands();
-			
-			else if (activePlayers.getBoolean("picture"))
-				definePictureCommands();
-			
-			else 
-				defineVideoCommands();
-			
+			if (profile.apiVersion <4) {
+				JSONObject activePlayers = profile.getJsonClient().callJSONObject("Player.GetActivePlayers");
+				
+				if (activePlayers.getBoolean("audio"))
+					defineCommands("Audio", 0, profile.apiVersion);
+				
+				else if (activePlayers.getBoolean("picture"))
+					defineCommands("Pictures", 0, profile.apiVersion);
+				
+				else 
+					defineCommands("Video", 0, profile.apiVersion);
+			}
+			else {
+				JSONArray activePlayers = profile.getJsonClient()
+						.callJSONArray("Player.GetActivePlayers");
+				
+				profile.currentPlayerId = activePlayers.getJSONObject(0).getInt("playerid");
+				
+				if (activePlayers.length()>0) {
+					for (int i=0; i<activePlayers.length(); i++)
+						//Xbmc.debug("==>"+activePlayers.getJSONObject(i));
+				
+					if (activePlayers.getJSONObject(0).getString("type").equals("audio"))
+						defineCommands("Audio", profile.currentPlayerId, profile.apiVersion);
+					
+					else if (activePlayers.getJSONObject(0).getString("type").equals("pictures"))
+						defineCommands("Pictures", profile.currentPlayerId, profile.apiVersion);
+					
+					else 
+						defineCommands("Video", profile.currentPlayerId, profile.apiVersion);
+					
+					
+				}
+			}
 		} catch (JSONRPCException e) {
 			e.printStackTrace();
 		} catch (JSONException e) {
@@ -257,6 +351,7 @@ public class XbmcController extends Controller {
 
 		String playingMedia = null;
 		String fileName = null;
+		String artist = null;
 		
 		try {
         	InputStream is = profile.getJsonClient().getHttpClient()
@@ -266,14 +361,22 @@ public class XbmcController extends Controller {
         		String line;
         		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         		
+        		profile.currentPlaylistPosition = -1;
+        		
         		while ((line = reader.readLine()) != null) {
         			for (String s: line.split("<li>")) {
-	        			if (s.contains("Title")) {
-	        				playingMedia = s.replaceAll("^.*Title:", "");
-	        				break;
+	        			if (playingMedia == null && s.matches("^Title:.*")) {
+	        				playingMedia = s.replaceAll("^Title:", "");
 	        			} 
 	        			else if (fileName == null && s.contains("Filename"))
-	        				fileName = s.replaceAll("^Filename:.+/", "");
+	        				fileName = s.replaceAll("^Filename:.+[/\\\\]", "");
+	        			
+	        			if (artist == null && s.matches("^Artist:.*"))
+	        				artist = s.replaceAll("^Artist:", "");
+	        			
+	        			if (profile.currentPlaylistPosition == -1 && s.matches("^(Song|Video)No:\\d+"))
+	        				profile.currentPlaylistPosition = 
+	        						Integer.valueOf(s.replaceAll("^(Song|Video)No:", ""));
         			}
         		}
 
@@ -288,7 +391,7 @@ public class XbmcController extends Controller {
         if (playingMedia == null && fileName != null && !fileName.contains("Nothing Playing"))
         	return fileName;
         else
-        	return playingMedia;
+        	return (artist==null?"":artist+" - ")+(playingMedia==null?"":playingMedia);
 	}
 
 	@Override
@@ -301,25 +404,33 @@ public class XbmcController extends Controller {
 
 	@Override
 	public void onItemSelected(String action, String item) throws RemoteException {
-		
-		if (profile.currentObject != null)
-			Executors.newSingleThreadExecutor().execute(new Runnable(){
-			
-			@Override
-			public void run() {
-				//Xbmc.debug("TRying to play "+item+ " file: "+profile.currentObject.getString("file"));
-
-				try {
-					 profile.getJsonClient().call(getCommand(START_PLAY),
-							 new JSONObject().put("file", profile.currentObject.getString("file")));					 
-					 
-				} catch (JSONRPCException e) {
-					e.printStackTrace();
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
-			}});
-
+	
+		if (action == null) {
+			if (profile.currentObject != null)
+				Executors.newSingleThreadExecutor().execute(new Runnable(){
+				
+				@Override
+				public void run() {
+					//Xbmc.debug("TRying to play "+item+ " file: "+profile.currentObject.getString("file"));
+	
+					try {
+						if (profile.apiVersion < 4)
+							profile.getJsonClient().call(getCommand(START_PLAY),
+									new JSONObject().put("file", profile.currentObject.getString("file")));					 
+						else
+							profile.getJsonClient().call(getCommand(START_PLAY),
+									new JSONObject().put("item", new JSONObject().put("file", profile.currentObject.getString("file"))));
+						 
+					} catch (JSONRPCException e) {
+						e.printStackTrace();
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}});
+		}
+		else {
+				
+		}
 	}
 
 	

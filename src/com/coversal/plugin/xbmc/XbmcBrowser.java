@@ -4,7 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
@@ -18,7 +18,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.os.RemoteException;
 
-import com.coversal.plugin.json.JSONRPCException;
 import com.coversal.ucl.api.AdapterItem;
 import com.coversal.ucl.plugin.Browsable;
 
@@ -26,58 +25,67 @@ public class XbmcBrowser extends Browsable {
 
 	
 	Xbmc profile;
-//	HashMap<String, JSONObject> currentObjects;
-	
-	//private String currentDir;
-	//private String currentMedia;
 	
 	private ArrayList<String> directoriesList = new ArrayList<String>();
-	private ArrayList<String> filesList = new ArrayList<String>();
-	static private BrowserObject homeBrowserObject;
-	private BrowserObject currentBrowserObject; 
+	private BrowserObject homeBrowserObject;
+	BrowserObject currentBrowserObject; 
 	
-	private class BrowserObject {
+	public abstract class BrowserObject {
 		String method;
 		String media;
 		String result;
 		JSONObject param;
 		JSONObject json;
-		HashMap<String, BrowserObject> subCategories;
+		LinkedHashMap<String, BrowserObject> subCategories;
 		BrowserObject parent;
+		String idField;
+		Class<? extends BrowserObject> subObject;
 		
-		private BrowserObject (BrowserObject bo, JSONObject jo) {
-			parent = bo;
-			method = null;
-			media = null;
-			result = null;
-			param = null;
-			subCategories = new HashMap<String, BrowserObject>();
-			json = jo;			
-		}
-		
-		BrowserObject(BrowserObject bo, String meth, String med, String r, JSONObject jo) {
+		BrowserObject(BrowserObject bo, String meth, String r, String m) {
 			parent = bo;
 			method = meth;
-			media = med;
+			media = m;
 			result = r;
-			param = jo;
-			subCategories = new HashMap<String, BrowserObject>();
-			json =null;
+			param = new JSONObject();
+			subCategories = new LinkedHashMap<String, BrowserObject>();
+			json = null;
+			idField = null;
+			subObject = null;
+			
+			try {
+				param.put("sort", new JSONObject()
+						.put("method", "label").put("order", "ascending"));
+			} catch (JSONException e) {	e.printStackTrace(); }
 		}
 		
-		void put(String name, String method, String media, String result, JSONObject param) {
-			subCategories.put(name, new BrowserObject(this, method, media, result, param));
+		
+		protected void put(String name, JSONObject jo) {
+						
+			if (subObject != null) {
+				try {
+					
+					subCategories.put(name, subObject.getDeclaredConstructor(XbmcBrowser.class,
+							BrowserObject.class, String.class)
+									.newInstance(XbmcBrowser.this, BrowserObject.this, media));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				subCategories.put(name, new SimpleList(this, null, result, media));
+			}
+
+			subCategories.get(name).json = jo;
+			
+			if (jo != null && idField != null)	try {
+				subCategories.get(name).param.put(idField, jo.get(idField));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 		}
 		
-		void put(String name, BrowserObject bo) {
-			subCategories.put(name, bo);
-		}
 		
-		void put(String name, JSONObject jo) {
-			subCategories.put(name, new BrowserObject(this, jo));
-		}
-		
-		String getPath(BrowserObject bo) {
+		private String getPath(BrowserObject bo) {
 			if (bo != null) {
 				for (String s: subCategories.keySet())
 					if (bo.equals(subCategories.get(s))) {
@@ -89,46 +97,302 @@ public class XbmcBrowser extends Browsable {
 			
 			return HOME_STR;			
 		}
+		
+		
+		protected JSONArray browse(boolean updateDirList) throws Exception {
+			
+			if (subObject == null) {
+				if (profile.apiVersion<4) 
+					param.put("fields", new JSONArray().put("thumbnail").put("file"));
+				else
+					param.put("properties", new JSONArray().put("thumbnail").put("file"));
+			}
+			
+			
+			
+			if (method != null) {
+				JSONArray list = profile
+						.getJsonClient()
+						.callJSONObject(method, param)
+						.getJSONArray(result);
+				
+				if (updateDirList)
+					directoriesList.clear();
+				
+				for (int i = 0; i < list.length(); i++) {
+					String label = list.getJSONObject(i).getString("label");
+					put(label, list.getJSONObject(i));
+					
+					if (updateDirList && subObject != null) directoriesList.add(label);
+				}
+				
+				return list;
+			}
+	
+			return null;
+		}
+		
+		
+		public ArrayList<String> getAllFiles() {
+
+			ArrayList<String> list = new ArrayList<String>();
+			
+			try {
+				if (browse(false) == null) {
+					if (json != null && json.has("file"))
+						list.add(json.getString("file"));
+				}
+				else {
+					for (BrowserObject bo: subCategories.values()) {
+						list.addAll(bo.getAllFiles());
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return list;
+		}
+	}
+
+	
+	
+	
+	// Simple
+	class SimpleList extends BrowserObject {
+
+		SimpleList(BrowserObject parent, String method, String result, String media) {
+			super(parent, method, result, media);
+		}
+	}
+
+	//Songs
+	class SongList extends BrowserObject {
+
+		SongList(BrowserObject parent, String media) {
+			super(parent, "AudioLibrary.GetSongs", "songs", media);
+			
+			try {
+				if (parent.param.has("albumid"))
+					param.put("albumid", parent.param.get("albumid"));
+				if (parent.param.has("genreid"))
+					param.put("genreid", parent.param.get("genreid"));
+				if (parent.param.has("artistid"))
+					param.put("artistid", parent.param.get("artistid"));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	//Albums
+	class AlbumList extends BrowserObject {
+
+		public AlbumList(BrowserObject parent, String media) {
+			super(parent, "AudioLibrary.GetAlbums", "albums", media);
+			idField = "albumid";
+			subObject = SongList.class;
+			
+			try {
+				if (parent.param.has("genreid"))
+					param.put("genreid", parent.param.get("genreid"));
+				if (parent.param.has("artistid"))
+					param.put("artistid", parent.param.get("artistid"));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+				
+		}	
+	}
+	
+	// Artists
+	class ArtistList extends BrowserObject {
+
+		public ArtistList(BrowserObject parent, String media) {
+			super(parent, "AudioLibrary.GetArtists", "artists", media);
+			idField = "artistid";
+			subObject = AlbumList.class;
+			
+			try {
+				if (parent.param.has("genreid"))
+					param.put("genreid", parent.param.get("genreid"));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	// Genres
+	class GenreList extends BrowserObject {
+
+		public GenreList(BrowserObject parent, String media) {
+			super(parent, "AudioLibrary.GetGenres", "genres", media);
+			idField = "genreid";
+			subObject = ArtistList.class;
+		}
+		
+	}
+	
+	// Files
+	class SourceList extends BrowserObject {
+
+		SourceList(BrowserObject parent, String media) {
+			super(parent, "Files.GetSources", profile.apiVersion == 4? "sources":"shares", media);
+			subObject = FileList.class;
+			
+			try {
+					param.put("media", media);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	// Files
+	class FileList extends BrowserObject {
+
+		FileList(BrowserObject parent, String media) {
+			super(parent, "Files.GetDirectory", null, media);
+			subObject = FileList.class;
+			
+			try {
+					param.put("media", media);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+
+		@Override
+		protected JSONArray browse(boolean updateDirList) throws Exception {
+			
+			if (method == null) return null;
+			
+			param.put("directory", json.get("file"));
+	
+			JSONObject tmpResult = profile
+					.getJsonClient()
+					.callJSONObject(method, param);
+	
+			//Xbmc.debug("\n\n*********** "+tmpResult+"\n\n");
+			
+			JSONArray tmpArr;
+			JSONArray list = new JSONArray();
+
+			if (updateDirList)
+				directoriesList.clear();
+			
+			// get directories
+			if (tmpResult.has("directories")) try {
+				tmpArr = tmpResult.getJSONArray("directories");
+				for (int i = 0; i < tmpArr.length(); i++) {
+					String label = tmpArr.getJSONObject(i).getString("label");
+					
+					if (updateDirList) directoriesList.add(label);
+					
+					list.put(tmpArr.get(i));
+					put(label, tmpArr.getJSONObject(i));
+				}
+			} catch (Exception e) {	}
+	
+			// get files
+			if (tmpResult.has("files")) try {
+				tmpArr = tmpResult.getJSONArray("files");
+				
+				for (int i = 0; i < tmpArr.length(); i++) {
+					String label = tmpArr.getJSONObject(i).getString("label");
+					list.put(tmpArr.get(i));
+					put(label, tmpArr.getJSONObject(i));
+					
+					JSONObject jo = tmpArr.getJSONObject(i);
+					
+					if (jo.has("filetype") && jo.getString("filetype").equals("directory")
+							&& !(profile.apiVersion > 3 && jo.getString("type").equals("movie"))) {
+						if( updateDirList)	directoriesList.add(label);
+					}
+					else 
+						subCategories.get(label).method = null;
+				}
+			} catch (Exception e) {e.printStackTrace();}
+	
+			return list;
+		}		
+	}
+	
+	// Series
+	class SerieList extends BrowserObject {
+
+		SerieList(BrowserObject parent, String media) {
+			super(parent, "VideoLibrary.GetTVShows", "tvshows", media);
+			idField = "tvshowid";
+			subObject = SeasonList.class;
+		}
+		
+	}
+
+	// Season
+	class SeasonList extends BrowserObject {
+
+		SeasonList(BrowserObject parent, String media) {
+			super(parent, "VideoLibrary.GetSeasons", "seasons", media);
+			idField = "season";
+			subObject = EpisodeList.class;
+			
+			try {
+				if (parent.param.has("tvshowid"))
+					param.put("tvshowid", parent.param.get("tvshowid"));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+		
+	}
+	
+	// Epìsode
+	class EpisodeList extends BrowserObject {
+
+		EpisodeList(BrowserObject parent, String media) {
+			super(parent, "VideoLibrary.GetEpisodes", "episodes", media);
+			
+			try {
+				if (parent.param.has("tvshowid"))
+					param.put("tvshowid", parent.param.get("tvshowid"));
+				if (parent.param.has("season"))
+					param.put("season", parent.param.get("season"));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+		
 	}
 	
 	public XbmcBrowser(Xbmc p) {
 		super(p);
 		profile = p;
-		//currentMedia = "";
-		
-		homeBrowserObject = new BrowserObject(null, null, null, null, null);
-		try {
+			
+		homeBrowserObject = new SimpleList(null, null, null, null);
 
-			homeBrowserObject.put("1-Movies", "VideoLibrary.GetMovies", null, "movies", 
-					new JSONObject().put("fields",	new JSONArray()
-							.put("thumbnail")
-							.put("file")) );
+		homeBrowserObject.subCategories.put("Movie Library", 
+				new SimpleList(homeBrowserObject, "VideoLibrary.GetMovies", "movies", "video"));
+		homeBrowserObject.subCategories.put("Series", 
+				new SerieList(homeBrowserObject, "video"));
 			
-			homeBrowserObject.put("2-Series", "VideoLibrary.GetTVShows", null, "tvshows", null);
+		BrowserObject music = new SimpleList(homeBrowserObject, null, null, "music");
+			music.subCategories.put("Albums", new AlbumList(music, "music"));	
+			music.subCategories.put("Artists", new ArtistList(music, "music"));		
+			music.subCategories.put("Genre", new GenreList(music, "music"));
 			
-			BrowserObject music = new BrowserObject(homeBrowserObject, null, null, null, null);
-				music.put("Albums", "AudioLibrary.GetAlbums", null, "albums", 
-						new JSONObject().put("fields",	new JSONArray().put("thumbnail")));
-				music.put("Artists", "AudioLibrary.GetArtists", null, "artists", null);
-				music.put("Genre", "AudioLibrary.GetGenres", null, "genres", null);
-				homeBrowserObject.put("3-Music", music);
-		
-				homeBrowserObject.put("4-All Video Files", "Files.GetSources", "video", "shares", 
-					new JSONObject().put("media", "video"));
-			
-				homeBrowserObject.put("5-All Music Files", "Files.GetSources", "music", "shares", 
-					new JSONObject().put("media", "music"));
-			
-				homeBrowserObject.put("6-Pictures", "Files.GetSources", "pictures", "shares", 
-					new JSONObject().put("media", "pictures"));
-			
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
+		homeBrowserObject.subCategories.put("Music Library", music);
+		homeBrowserObject.subCategories.put("All Video Files", 
+				new SourceList(homeBrowserObject, "video")); 
+		homeBrowserObject.subCategories.put("All Music Files", 
+				new SourceList(homeBrowserObject, "music")); 
+		homeBrowserObject.subCategories.put("Pictures",
+				new SourceList(homeBrowserObject, "pictures")); 
 
 		currentBrowserObject = homeBrowserObject;
 	}
 
+	
+	
 	// We overwrite this in order to support the secured http connection  
 	protected Bitmap downloadBitmap(String url) {
 		
@@ -169,56 +433,14 @@ public class XbmcBrowser extends Browsable {
 		return resizedBitmap;
 	}
 	
-	
-	private JSONArray browsePath(BrowserObject bo) throws JSONRPCException, JSONException {
-		JSONObject param = new JSONObject()
-				.put("directory", bo.json.get("file"))
-				.put("media", bo.media);//new JSONArray().put("video").put("music").put("picture"));
-		
-		JSONObject tmpResult = profile
-				.getJsonClient()
-				.callJSONObject("Files.GetDirectory", param);
-		
-		JSONArray tmpArr;
-		JSONArray json = new JSONArray();
-	
-		try {
-			tmpArr = tmpResult.getJSONArray("directories");
-			for (int i = 0; i < tmpArr.length(); i++) {
-				directoriesList.add(tmpArr.getJSONObject(i).getString("label"));
-				json.put(tmpArr.get(i));
-			}
-		} catch (Exception e) {
-			// throws an exception when no directories found...
-		}
 
-		tmpArr = tmpResult.getJSONArray("files");
-		
-		for (int i = 0; i < tmpArr.length(); i++) {
-			String fileType="-";
-			try {
-				fileType = tmpArr.getJSONObject(i).getString("filetype");
-			} catch (Exception e) {}
-			
-			if (fileType.equals("directory"))
-				directoriesList.add(tmpArr.getJSONObject(i).getString("label"));
-			else// if(fileType.equals("file"))
-				filesList.add(tmpArr.getJSONObject(i).getString("label"));
-			json.put(tmpArr.get(i));
-		}
-		
-		return json;
-	}
 	
 	@Override
 	public List<AdapterItem> browse(String item) throws RemoteException {
 		
-//		if (getHomeDir().equals(item)) browseHistory.clear();
-//		if (currentDir != null) browseHistory.addFirst(currentDir);
-		
 		ArrayList<AdapterItem> list = new ArrayList<AdapterItem>();
 
-		Xbmc.debug("BROWSING: "+item);
+		//Xbmc.debug("BROWSING: "+item+" on server "+profile.getValue(Xbmc.SERVER));
 		
 		// browse home
 		if (item == null)
@@ -243,14 +465,13 @@ public class XbmcBrowser extends Browsable {
 			String path[] = item.split("/");
 			int i = 0;
 			while (i<path.length && currentBrowserObject.subCategories.containsKey(path[i])) {
-				Xbmc.debug(i+"/EXPERIMENTAL recreating path: "+currentBrowserObject.getPath(null));
 				currentBrowserObject = currentBrowserObject.subCategories.get(path[i++]);
 			}
 		}
 			
 		if (currentBrowserObject.parent!= null)
 			list.add(new AdapterItem(-1, BACK_STR, null, null, null));
-		
+				
 		if(currentBrowserObject.method == null
 				&& currentBrowserObject.json == null
 				&& currentBrowserObject.subCategories.size() > 0) {
@@ -265,74 +486,13 @@ public class XbmcBrowser extends Browsable {
 		
 		else {
 			try {
-				JSONArray json;
-				
-				if (currentBrowserObject.json != null) {
-					//currentDir = currentBrowserObject.json.getString("file");
-					if (currentBrowserObject.json.has("albumid")) {
-						currentBrowserObject.method = "AudioLibrary.GetSongs";
-						currentBrowserObject.result="songs";
-						currentBrowserObject.param = new JSONObject()
-								.put("albumid", currentBrowserObject.json.get("albumid"))
-								.put("fields",	new JSONArray().put("thumbnail").put("file"));
-					}
-					else if (currentBrowserObject.json.has("artistid")) {
-						currentBrowserObject.method = "AudioLibrary.GetSongs";
-						currentBrowserObject.result="songs";
-						currentBrowserObject.param = new JSONObject()
-								.put("artistid", currentBrowserObject.json.get("artistid"))
-								.put("fields",	new JSONArray().put("thumbnail").put("file"));
-					}
-					else if (currentBrowserObject.json.has("genreid")) {
-						currentBrowserObject.method = "AudioLibrary.GetSongs";
-						currentBrowserObject.result="songs";
-						currentBrowserObject.param = new JSONObject()
-								.put("genreid", currentBrowserObject.json.get("genreid"))
-								.put("fields",	new JSONArray().put("thumbnail").put("file"));
-					}
-					else {
-						currentBrowserObject.method = null;
-					}
-				}
-				
-				if (currentBrowserObject.method != null) {
-					json = profile
-							.getJsonClient()
-							.callJSONObject(currentBrowserObject.method, currentBrowserObject.param)
-							.getJSONArray(currentBrowserObject.result);
-					
-					if (!currentBrowserObject.method.equals("VideoLibrary.GetMovies")
-							&& !currentBrowserObject.method.equals("AudioLibrary.GetSongs")) {
-						//currentMedia = currentBrowserObject.media;
-						
-						directoriesList.clear();
-						for (int i = 0; i < json.length();
-							directoriesList.add(json.getJSONObject(i++).getString("label")));
-					}	
-				}
-				else if (currentBrowserObject.json.has("file")){
-					json = browsePath(currentBrowserObject);
-				}
-				else
-					throw new Exception ("No JSON method found, no file information for browsing.");
-				
-				
-//				else {
-//					// we end up here when a path is passed on as item: in case of home dir or browse back
-//					//currentDir = item;
-//					json = browsePath(item);
-//				}
+				JSONArray json = currentBrowserObject.browse(true);
 					
 				//currentObjects = new HashMap<String, JSONObject>();
 				for (int i = 0; i < json.length();i++){
-	
 					//Xbmc.debug("fields: "+json.getJSONObject(i).names());
 					list.add(new AdapterItem(-1, json.getJSONObject(i).getString("label"),
 		  				null, null, null));
-		  		
-					currentBrowserObject.put(json.getJSONObject(i).getString("label"), json.getJSONObject(i));
-					
-					Xbmc.debug("json object: "+json.getJSONObject(i));
 				}
 				
 			} catch (Exception e) {
@@ -346,8 +506,6 @@ public class XbmcBrowser extends Browsable {
 	
 	@Override
 	public List<AdapterItem> browseBack() throws RemoteException {
-		//String toBrowse = browseHistory.poll();
-		//currentDir = browseHistory.poll();
 		return browse(BACK_STR);
 	}
 
@@ -355,33 +513,47 @@ public class XbmcBrowser extends Browsable {
 	@Override
 	public Bitmap getCover(String item) throws RemoteException {
 		try {
-			Xbmc.debug("searching cover for "+item);
+			//Xbmc.debug("searching cover for "+item);
 			if (!currentBrowserObject.subCategories.containsKey(item) 
-					||currentBrowserObject.subCategories.get(item).json == null) return null;
+					||currentBrowserObject.subCategories.get(item).json == null
+					||currentBrowserObject.method.equals("Files.GetDirectory")) return null;
+			
+			
+			String tbnPath = null;
+			if (currentBrowserObject.subCategories.get(item).json.has("thumbnail"))
+				tbnPath = currentBrowserObject.subCategories.get(item).json.getString("thumbnail");
+			else if (currentBrowserObject.subCategories.get(item).json.has("fanart"))
+				tbnPath = currentBrowserObject.subCategories.get(item).json.getString("fanart");
+			
+			
+			if (tbnPath == null || tbnPath.equals("")) return null;
 			
 			JSONObject tbn;
-			String tbnPath = currentBrowserObject.subCategories.get(item).json.getString("thumbnail");
-			
-			if (profile.apiVersion>2)
-				tbn = profile.getJsonClient().callJSONObject("Files.Download", 
-							new JSONObject().put("path", tbnPath));
-			else
+			if (profile.apiVersion == 2)
 				tbn = profile.getJsonClient().callJSONObject("Files.Download", tbnPath);
+				
+			else if (profile.apiVersion == 3)
+				tbn = profile.getJsonClient().callJSONObject("Files.Download", 
+						new JSONObject().put("path", tbnPath));
 			
-			String tbnUrl = "http://"+profile.getValue(Xbmc.SERVER)+":"+profile.getValue(Xbmc.PORT)+"/"
-						+URLEncoder.encode(tbn.getString("path"), "UTF-8");
+			else 
+				tbn = profile.getJsonClient().callJSONObject("Files.PrepareDownload", 
+						new JSONObject().put("path", tbnPath));
 						
+			String tbnUrl;
+			
+			if (profile.apiVersion < 4)
+				tbnUrl = "http://"+profile.getValue(Xbmc.SERVER)+":"+profile.getValue(Xbmc.PORT)+"/"
+							+URLEncoder.encode(tbn.getString("path"), "UTF-8");
+			else
+				tbnUrl = "http://"+profile.getValue(Xbmc.SERVER)+":"+profile.getValue(Xbmc.PORT)+"/"
+						+tbn.getJSONObject("details").getString("path");
+			
 			return downloadBitmap(tbnUrl);
 
 		} catch (Exception e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 		}
-//		} catch (JSONRPCException e) {
-//			e.printStackTrace();
-//		} catch (JSONException e) {
-//		} catch (UnsupportedEncodingException e) {
-//			e.printStackTrace();
-//		} 
 
 		return null;
 	}

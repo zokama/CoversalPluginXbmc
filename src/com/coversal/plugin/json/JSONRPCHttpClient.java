@@ -25,7 +25,6 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-
 /**
  * Implementation of JSON-RPC over HTTP/POST
  */
@@ -41,9 +40,8 @@ public class JSONRPCHttpClient extends JSONRPCClient
 	private String user;
 	private String passwd;
 
-
-	// HTTP 1.0
 	private static final ProtocolVersion PROTOCOL_VERSION = new ProtocolVersion("HTTP", 1, 0);
+	private static final int TIMEOUT = 5000; 
 
 	/**
 	 * Construct a JsonRPCClient with the given service uri
@@ -62,8 +60,8 @@ public class JSONRPCHttpClient extends JSONRPCClient
 		HttpParams params = new BasicHttpParams();
 		SchemeRegistry registry = new SchemeRegistry();
 		registry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), port));
-		HttpConnectionParams.setConnectionTimeout(params, 2000);
-		HttpConnectionParams.setSoTimeout(params, 2000);
+		HttpConnectionParams.setConnectionTimeout(params, TIMEOUT);
+		HttpConnectionParams.setSoTimeout(params, TIMEOUT);
 		HttpProtocolParams.setVersion(params, PROTOCOL_VERSION);
 		
 		ClientConnectionManager cm = new ThreadSafeClientConnManager(params, registry);
@@ -97,7 +95,7 @@ public class JSONRPCHttpClient extends JSONRPCClient
 			entity = new JSONEntity(jsonRequest);
             
     		request.setEntity(entity);
-    		//Profile.debug(" ---------->"+jsonRequest.toString());
+    		//Xbmc.debug(" ---------->"+jsonRequest.toString());
 		}
 		catch (UnsupportedEncodingException e1)	{
 			throw new JSONRPCException("Unsupported encoding", e1);
@@ -108,10 +106,12 @@ public class JSONRPCHttpClient extends JSONRPCClient
 		try
 		{
 			// Execute the request and try to decode the JSON Response
-			
 			HttpResponse response = httpClient.execute(request);
 			responseString = EntityUtils.toString(response.getEntity());
 			responseString = responseString.trim();
+
+			response.getEntity().consumeContent();
+			
 			
 			JSONObject jsonResponse = new JSONObject(responseString);
 			// Check for remote errors
