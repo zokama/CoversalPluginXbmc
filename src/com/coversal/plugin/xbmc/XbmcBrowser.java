@@ -440,11 +440,13 @@ public class XbmcBrowser extends Browsable {
 		
 		ArrayList<AdapterItem> list = new ArrayList<AdapterItem>();
 
-		//Xbmc.debug("BROWSING: "+item+" on server "+profile.getValue(Xbmc.SERVER));
+		Xbmc.debug("BROWSING: "+item+" on server "+profile.getValue(Xbmc.SERVER));
 		
 		// browse home
-		if (item == null)
+		if (item == null) {
 			item = profile.getOptionValue(OPTION_HOME_DIR);
+			Xbmc.debug("BROWSING HOME DIRECTORY: "+item);
+		}
 		
 		if (item == null || item.equals(HOME_STR)) {
 			currentBrowserObject = homeBrowserObject;

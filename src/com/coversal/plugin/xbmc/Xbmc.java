@@ -26,7 +26,7 @@ public class Xbmc extends Profile {
 	static final int TIMEOUT = 2000;
 	
 	XbmcController controller = new XbmcController(this);
-	XbmcBrowser browser = null;
+	XbmcBrowser browser = new XbmcBrowser(this); //first initialization for profile creation
 	XbmcPlaylist playlist = new XbmcPlaylist(this);
 	JSONObject currentObject;
 	JSONRPCHttpClient session;
@@ -92,13 +92,11 @@ public class Xbmc extends Profile {
 			session.setConnectionTimeout(TIMEOUT);
 			session.setSoTimeout(TIMEOUT);
 
-			
 			// determinate version
 			apiVersion = session.callJSONObject("JSONRPC.Version").getInt("version");
 			//Xbmc.debug("\n\n-----CHECKING API VERSION "+apiVersion);
 
 			controller.initCommands(apiVersion);
-
 			
 		} catch (JSONRPCException e) {
 			e.printStackTrace();
@@ -107,9 +105,11 @@ public class Xbmc extends Profile {
 			e.printStackTrace();
 			return false;
 		}
-		
-		 browser = new XbmcBrowser(this);
-		 
+
+		String homeDirBkp = getOptionValue(OPTION_HOME_DIR);
+		browser = new XbmcBrowser(this);
+		setOptionValue(OPTION_HOME_DIR, homeDirBkp);
+
 		return true;//session.isConnected();
 	}
 	

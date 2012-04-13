@@ -70,6 +70,7 @@ public class XbmcController extends Controller {
 		
 		switch (version) {
 		case 2:
+			defineCommand(START_PLAY, "XBMC.Play", false);
 			defineCommand(BACK, "[http]0xF008", false);
 			defineCommand(OK, "[http]0xF00d)", false);
 			defineCommand(HOME, "[http]0xF01B", false);
@@ -82,6 +83,10 @@ public class XbmcController extends Controller {
 			defineCommand(VOL_DOWN, "XBMC.SetVolume", false);
 			break;
 		case 3:
+			defineCommand(START_PLAY, "XBMC.Play", false);
+			
+			
+			
 			defineCommand(BACK, "Input.Back", false);
 			defineCommand(OK, "Input.Select", false);
 			defineCommand(HOME, "Input.Home", false);
@@ -317,9 +322,11 @@ public class XbmcController extends Controller {
 				JSONArray activePlayers = profile.getJsonClient()
 						.callJSONArray("Player.GetActivePlayers");
 				
-				profile.currentPlayerId = activePlayers.getJSONObject(0).getInt("playerid");
+				
 				
 				if (activePlayers.length()>0) {
+					profile.currentPlayerId = activePlayers.getJSONObject(0).getInt("playerid");
+					
 					for (int i=0; i<activePlayers.length(); i++)
 						//Xbmc.debug("==>"+activePlayers.getJSONObject(i));
 				
@@ -396,7 +403,8 @@ public class XbmcController extends Controller {
 
 	@Override
 	public boolean isPlaying() throws RemoteException {
-		if (getPlayingMedia() == null)
+		String playing = getPlayingMedia();
+		if (playing == null || playing.equals(""))
 			return false;
 		else 
 			return true;
